@@ -9,7 +9,7 @@ int main() {
 
     if (pid < 0) 
     {
-        // fork 失败
+        // fork 失败s
         perror("fork failed");
         exit(EXIT_FAILURE);
     } 
