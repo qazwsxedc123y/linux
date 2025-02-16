@@ -1,3 +1,0 @@
-hello printf
-hello fprintf
-printf
