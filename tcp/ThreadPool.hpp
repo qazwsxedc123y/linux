@@ -7,13 +7,14 @@
 #include <pthread.h>
 #include <unistd.h>
 
-struct ThreadInfo
+class ThreadInfo
 {
-    pthread_t tid;
-    std::string name;
+public:
+    pthread_t tid_;
+    std::string name_;
 };
 
-static const int defalutnum = 10;
+static const int defalutnum = 5;
 
 template <class T>
 class ThreadPool
@@ -43,16 +44,19 @@ public:
     {
         for (const auto &ti : threads_)
         {
-            if (ti.tid == tid)
-                return ti.name;
+            if (ti.tid_ == tid)
+            {
+                return ti.name_;
+            }
         }
         return "None";
     }
 
 public:
-    static void *HandlerTask(void *args)
+    static void *HandlerTask(void *args) // 带 static 是因为类内的函数第一个参数是默认为 this 指针
     {
-        ThreadPool<T> *tp = static_cast<ThreadPool<T> *>(args);
+        ThreadPool<T> *tp = static_cast<ThreadPool *>(args);
+        // 分配任务，如果任务队列为空，则线程等待
         std::string name = tp->GetThreadName(pthread_self());
         while (true)
         {
@@ -62,8 +66,12 @@ public:
             {
                 tp->ThreadSleep();
             }
+
+            // 有任务了
             T t = tp->Pop();
+            // std::cout << "处理了一个任务 : " << t << "," << name << "run" << std::endl;
             tp->Unlock();
+            sleep(1);
 
             t();
         }
@@ -73,8 +81,8 @@ public:
         int num = threads_.size();
         for (int i = 0; i < num; i++)
         {
-            threads_[i].name = "thread-" + std::to_string(i + 1);
-            pthread_create(&(threads_[i].tid), nullptr, HandlerTask, this);
+            threads_[i].name_ = "thread-" + std::to_string(i + 1);
+            pthread_create(&(threads_[i].tid_), nullptr, HandlerTask, this);
         }
     }
     T Pop()
@@ -105,8 +113,8 @@ public:
 
         return tp_;
     }
-
 private:
+// 构建单例
     ThreadPool(int num = defalutnum) : threads_(num)
     {
         pthread_mutex_init(&mutex_, nullptr);
@@ -117,8 +125,9 @@ private:
         pthread_mutex_destroy(&mutex_);
         pthread_cond_destroy(&cond_);
     }
-    ThreadPool(const ThreadPool<T> &) = delete;
-    const ThreadPool<T> &operator=(const ThreadPool<T> &) = delete; // a=b=c
+    // 防止形成第二个对象
+    ThreadPool(const ThreadPool<T>&) = delete;
+    const ThreadPool<T>& operator=(const ThreadPool<T>&) = delete;
 private:
     std::vector<ThreadInfo> threads_;
     std::queue<T> tasks_;
