@@ -1,13 +1,21 @@
 #pragma once
 
 #include <iostream>
+#include <string>
+#include <cstdlib>
 #include <cstring>
 #include <unistd.h>
-#include <sys/types.h> /* See NOTES */
+#include <sys/wait.h>
+#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <signal.h>
+#include <signal.h>
 #include "Log.hpp"
+#include "ThreadPool.hpp"
+#include "Task.hpp"
 
 const int defaultfd = -1;
 const std::string defaultip = "0.0.0.0"; // ip
@@ -21,6 +29,20 @@ enum
     SocketError,
     BindError,
     ListenError,
+};
+
+class TcpServer;
+
+class ThreadData
+{
+public:
+    ThreadData(int fd, const std::string &ip, const uint16_t &p, TcpServer *t): sockfd(fd), clientip(ip), clientport(p), tsvr(t)
+    {}
+public:
+    int sockfd;
+    std::string clientip;
+    uint16_t clientport;
+    TcpServer *tsvr;
 };
 
 class TcpServer
@@ -39,6 +61,8 @@ public:
             exit(SocketError);
         }
         lg(Info, "create socket success, listensock_: %d", listensock_);
+
+        // std::cout << "listensock_ : " << listensock_ <<std::endl;
 
         // 设置套接字选项（setsockopt），允许地址和端口重用。
 
@@ -71,11 +95,22 @@ public:
         lg(Info, "listen socket success, listensock_: %d", listensock_);
     }
 
+    static void *Routine(void *args)
+    {
+        pthread_detach(pthread_self());
+        ThreadData *td = static_cast<ThreadData *>(args);
+        td->tsvr->Service(td->sockfd, td->clientip, td->clientport);//???
+        delete td;
+        return nullptr;
+    }
+
     void Start()
     {
         // 将服务器进程设置为守护进程（Daemon）。
 
         // 启动线程池（ThreadPool<Task>::GetInstance()->Start()）。
+
+        ThreadPool<Task>::GetInstance()->Start();
         lg(Info, "tcpServer is running...");
         for(;;)
         {
@@ -94,9 +129,55 @@ public:
 
             // 2. 根据新连接来进行通信
             lg(Info, "get a new link..., sockfd: %d, client ip: %s, client port: %d", sockfd, clientip, clientport);
-            // version 1 -- 单进程版
-            Service(sockfd, clientip, clientport);
-            close(sockfd);
+            // // version 1 -- 单进程版
+            // // std::cout << "sockfd : " << sockfd <<std::endl; // 4
+            // Service(sockfd, clientip, clientport);
+            // close(sockfd);
+
+            // version 2 -- 多进程版
+            // 但是这样，会阻塞等待子进程。还是跟单进程同样效果
+            // 同一时间只允许单个用户使用
+            // pid_t id = fork();
+            // // 让子进程干活
+            // if(id == 0)
+            // {
+            //     // child
+            //     close(listensock_);
+            //     Service(sockfd, clientip, clientport);
+            //     close(sockfd);
+            //     exit(0);
+            // }
+            // close(sockfd);
+            // // father
+            // pid_t rid = waitpid(id, nullptr, 0);
+            // (void)rid;
+
+            // 优化版
+
+            // pid_t id = fork();
+            // // 让子进程干活
+            // if(id == 0)
+            // {
+            //     // child
+            //     close(listensock_);
+            //     if(fork() > 0) exit(0);
+            //     Service(sockfd, clientip, clientport); //孙子进程， system 领养
+            //     close(sockfd);
+            //     exit(0);
+            // }
+            // close(sockfd);
+            // // father
+            // pid_t rid = waitpid(id, nullptr, 0);
+            // (void)rid;
+
+            // version 3 -- 多线程版本
+            // ThreadData *td = new ThreadData(sockfd, clientip, clientport, this);
+            // pthread_t tid;
+            // pthread_create(&tid, nullptr, Routine, td);
+
+            // version 4 --- 线程池版本
+            Task t(sockfd, clientip, clientport);
+            ThreadPool<Task>::GetInstance()->Push(t);
         }
 
         // 进入主循环，不断接受新的客户端连接（accept）。
