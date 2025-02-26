@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
-
+   
 #define SIZE 1024
 
 #define Info 0

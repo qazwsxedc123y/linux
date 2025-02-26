@@ -54,7 +54,7 @@ public:
 
 public:
     static void *HandlerTask(void *args) // 带 static 是因为类内的函数第一个参数是默认为 this 指针
-    {
+    {   
         ThreadPool<T> *tp = static_cast<ThreadPool *>(args);
         // 分配任务，如果任务队列为空，则线程等待
         std::string name = tp->GetThreadName(pthread_self());

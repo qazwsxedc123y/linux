@@ -65,6 +65,9 @@ public:
         // std::cout << "listensock_ : " << listensock_ <<std::endl;
 
         // 设置套接字选项（setsockopt），允许地址和端口重用。
+        // 目的是允许服务器在重启后立即重新使用相同的地址和端口。
+        int opt = 1;
+        setsockopt(listensock_, SOL_SOCKET, SO_REUSEADDR|SO_REUSEPORT, &opt, sizeof(opt)); // 防止偶发性的服务器无法进行立即重启(tcp协议的时候再说)
 
         // 绑定套接字到指定的IP地址和端口（bind）。
         struct sockaddr_in local;

@@ -2,9 +2,11 @@
 #include <iostream>
 #include <string>
 #include "Log.hpp"
+#include "Init.hpp"
 
 extern Log lg;
-
+Init init;
+    
 class Task
 {
 public:
@@ -21,8 +23,10 @@ public:
         {
             buffer[n] = 0;
             std::cout << "client say# " << buffer << std::endl;
-            std::string echo_string = "tcpserver echo# ";
-            echo_string += buffer;
+            std::string echo_string = init.translation(buffer);
+
+            // std::string echo_string = "tcpserver echo# ";
+            // echo_string += buffer;
 
             n = write(sockfd_, echo_string.c_str(), echo_string.size());
             if (n < 0)

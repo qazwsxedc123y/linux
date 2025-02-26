@@ -5,7 +5,7 @@
 void Usage(std::string proc)
 {
     std::cout << "\n\rUsage: " << proc << " port[1024+]\n" << std::endl;
-}
+}    
 
 //./tcpserver 8080
 int main(int argc, char *argv[])
