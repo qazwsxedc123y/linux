@@ -16,6 +16,7 @@
 #include "Log.hpp"
 #include "ThreadPool.hpp"
 #include "Task.hpp"
+#include "Daemon.hpp"
 
 const int defaultfd = -1;
 const std::string defaultip = "0.0.0.0"; // ip
@@ -110,9 +111,8 @@ public:
     void Start()
     {
         // 将服务器进程设置为守护进程（Daemon）。
-
+        Daemon("/");
         // 启动线程池（ThreadPool<Task>::GetInstance()->Start()）。
-
         ThreadPool<Task>::GetInstance()->Start();
         lg(Info, "tcpServer is running...");
         for(;;)

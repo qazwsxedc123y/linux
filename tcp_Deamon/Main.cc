@@ -1,4 +1,4 @@
-#include "TcpServer.hpp"
+#include "TcpServerd.hpp"
 #include <iostream>
 #include <memory>
 
@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
         Usage(argv[0]);
         exit(UsageError);
     }
-
+    lg.Enable(Classfile);
     uint16_t port = std::stoi(argv[1]);
     std::unique_ptr<TcpServer> tcp_svr(new TcpServer(port));
     tcp_svr->InitServer();
