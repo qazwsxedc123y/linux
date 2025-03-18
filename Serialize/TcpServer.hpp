@@ -50,15 +50,12 @@ public:
 
                         lg(Debug, "debug:\n%s", inbuffer_stream.c_str());
 
-                        while (true)
-                        {
-                            std::string info = callback_(inbuffer_stream);
-                            if (info.empty())
-                                break;
-                            lg(Debug, "debug, response:\n%s", info.c_str());
-                            lg(Debug, "debug:\n%s", inbuffer_stream.c_str());
-                            write(sockfd, info.c_str(), info.size());
-                        }
+                        std::string info = callback_(inbuffer_stream);
+                        if (info.empty())
+                            continue;
+                        // lg(Debug, "debug, response:\n%s", info.c_str());
+                        // lg(Debug, "debug:\n%s", inbuffer_stream.c_str());
+                        write(sockfd, info.c_str(), info.size());
                     }
                     else if (n == 0)
                         break;

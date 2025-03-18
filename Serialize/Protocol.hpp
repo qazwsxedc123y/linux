@@ -45,6 +45,10 @@ bool Decode(std::string &package, std::string *content) // 解码
 class Request
 {
 public:
+    Request()
+    {
+
+    }
     Request(int data1, int data2, char oper) :x(data1) ,y(data2) ,op(oper)
     {}
     bool Serialize(std::string *out) // 序列化
@@ -105,6 +109,7 @@ public:
         s += blank_space_sep;
         s += std::to_string(code);
 
+        *out = s;
         return true;
     }
     bool Deserialize(const std::string &in)    // 反序列化
