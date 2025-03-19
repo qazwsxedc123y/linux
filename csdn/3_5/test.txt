@@ -1,0 +1,4 @@
+hello world
+hello linux
+hello pipe
+hello IPC
