@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
     TcpServer *tsvr = new TcpServer(port, std::bind(&ServerCal::Calculator, &cal, std::placeholders::_1));
 
     tsvr->InitServer();
+    daemon(0, 0);
     tsvr->Start();
 
     return 0;

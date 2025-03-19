@@ -38,6 +38,7 @@ bool Decode(std::string &package, std::string *content) // 解码
     *content = package.substr(pos + 1, len);
 
     // earse 移除报文 package.erase(0, total_len);
+    package.erase(0, total_len);
 
     return true;
 }
@@ -99,6 +100,8 @@ public:
 class Response
 {
 public:
+    Response()
+    {}
     Response(int res, int c) : result(res), code(c)
     {}
     bool Serialize(std::string *out) // 序列化
