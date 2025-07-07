@@ -9,7 +9,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-
 #include "Log.hpp"
 
 enum
@@ -19,7 +18,7 @@ enum
     ListenErr,
 };
 
-// 连接请求队列的最大长度
+// TODO
 const int backlog = 10;
 
 class Sock
@@ -31,6 +30,7 @@ public:
     ~Sock()
     {
     }
+
 public:
     void Socket()
     {
@@ -40,9 +40,8 @@ public:
             lg(Fatal, "socker error, %s: %d", strerror(errno), errno);
             exit(SocketErr);
         }
-        // 当服务器程序崩溃或主动关闭后，TCP连接会进入TIME_WAIT状态
         int opt = 1;
-        setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+        setsockopt(sockfd_, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt));
     }
     void Bind(uint16_t port)
     {
@@ -52,16 +51,15 @@ public:
         local.sin_port = htons(port);
         local.sin_addr.s_addr = INADDR_ANY;
 
-        if(bind(sockfd_, (struct sockaddr *)&local, sizeof(local)) < 0)
+        if (bind(sockfd_, (struct sockaddr *)&local, sizeof(local)) < 0)
         {
             lg(Fatal, "bind error, %s: %d", strerror(errno), errno);
             exit(BindErr);
         }
     }
-    // 设置listen状态
     void Listen()
     {
-        if(listen(sockfd_, backlog) < 0)
+        if (listen(sockfd_, backlog) < 0)
         {
             lg(Fatal, "listen error, %s: %d", strerror(errno), errno);
             exit(ListenErr);
@@ -78,7 +76,6 @@ public:
             return -1;
         }
         char ipstr[64];
-        // 字符串转 IPV4 格式
         inet_ntop(AF_INET, &peer.sin_addr, ipstr, sizeof(ipstr));
         *clientip = ipstr;
         *clientport = ntohs(peer.sin_port);
@@ -101,7 +98,6 @@ public:
         }
         return true;
     }
-
     void Close()
     {
         close(sockfd_);
@@ -110,6 +106,7 @@ public:
     {
         return sockfd_;
     }
+
 private:
     int sockfd_;
 };
