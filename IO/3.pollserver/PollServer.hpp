@@ -1,24 +1,27 @@
 #pragma once
 
 #include <iostream>
-#include <sys/select.h>
+#include <poll.h>
 #include <sys/time.h>
 #include "Socket.hpp"
 
 using namespace std;
 
 static const uint16_t defaultport = 8080;
-static const int fd_num_max = (sizeof(fd_set) * 8);
+static const int fd_num_max = 64;
 int defaultfd = -1;
+int non_event = 0;
 
-class SelectServer
+class PollServer
 {
 public:
-    SelectServer(uint16_t port = defaultport) : _port(port)
+    PollServer(uint16_t port = defaultport) : _port(port)
     {
         for(int i = 0; i < fd_num_max; i++)
         {
-            fd_array[i] = defaultfd;
+            _event_fds[i].fd = defaultfd;
+            _event_fds[i].events = non_event;
+            _event_fds[i].revents = non_event;
         }
     }
     bool Init()
@@ -40,18 +43,21 @@ public:
         int pos = 1;
         for(; pos < fd_num_max; pos++)
         {
-            if(fd_array[pos] != defaultfd) continue;
+            if(_event_fds[pos].fd != defaultfd) 
+                continue;
             else
                 break;
         }
         if(pos == fd_num_max)
         {
+            cout << "pos : " << pos << endl;
             lg(Warning, "server is full, close %d now!", sock);
             close(sock);
+            // 扩容
         }
         else
         {
-            fd_array[pos] = sock;
+            _event_fds[pos].fd = sock;
             PrintFd();
             // TODO
         }
@@ -69,23 +75,23 @@ public:
         {
             lg(Info, "client quit, me too, close fd is : %d", fd);
             close(fd);
-            fd_array[pos] = defaultfd; // 这里本质是从select中移除
+            _event_fds[pos].fd = defaultfd; // 这里本质是从select中移除
         }
         else
         {
             lg(Warning, "recv error: fd is : %d", fd);
             close(fd);
-            fd_array[pos] = defaultfd;
+           _event_fds[pos].fd = defaultfd;
         }
     }
-    void Dispatcher(fd_set &rfds)
+    void Dispatcher()
     {
         for (int i = 0; i < fd_num_max; i++)
         {
-            int fd = fd_array[i];
+            int fd = _event_fds[i].fd;
             if(fd == defaultfd) continue;
 
-            if(FD_ISSET(fd, &rfds))
+            if(_event_fds[i].revents & POLLIN)
             {
                 if(fd == _listensock.Fd())
                 {
@@ -100,62 +106,46 @@ public:
     }
     void Start()
     {
-        int listensock = _listensock.Fd();
-        fd_array[0] = listensock;
+        _event_fds[0].fd = _listensock.Fd();
+        _event_fds[0].events = POLLIN;
+        int timeout = 3000; // 3s
         for(;;)
         {
-            fd_set rfds;
-            FD_ZERO(&rfds);
-
-            int maxfd = fd_array[0];
-            for(int i = 0; i < fd_num_max; i++)
-            {
-                if(fd_array[i] == defaultfd) continue;
-                FD_SET(fd_array[i], &rfds);
-                if(maxfd < fd_array[i])
-                {
-                    maxfd = fd_array[i];
-                    lg(Info, "max fd update, max fd is: %d", maxfd);
-                }
-            }
-            // struct timeval timeout = {1, 0}; // 输入输出，可能要进行周期的重复设置
-            struct timeval timeout = {0, 0};
-            int n = select(maxfd + 1, &rfds, nullptr, nullptr, /*&timeout*/ nullptr);
+            int n = poll(_event_fds, fd_num_max, timeout);
             switch(n)
             {
                 case 0:
-                    cout << "time out, timeout : " << timeout.tv_sec << "." << timeout.tv_usec << endl;
+                    cout << "time out... " << endl;
                     break;
                 case -1:
-                    cerr << "select error" << endl;
+                    cerr << "poll error" << endl;
                     break;
                 default :
                     // 有事件就绪了，TODO
-                    cout << "get a link!!!" << endl;
-                    Dispatcher(rfds);
+                    cout << "get a new link!!!!!" << endl;
+                    Dispatcher(); // 就绪的事件和fd你怎么知道只有一个呢？？？
                     break;
             }
         }
-
     }
     void PrintFd()
     {
         cout << "online fd list: ";
         for (int i = 0; i < fd_num_max; i++)
         {
-            if (fd_array[i] == defaultfd)
+            if (_event_fds[i].fd == defaultfd)
                 continue;
-            cout << fd_array[i] << " ";
+            cout << _event_fds[i].fd << " ";
         }
         cout << endl;
     }
 
-    ~SelectServer()
+    ~PollServer()
     {
         _listensock.Close();
     }
 private:
     Sock _listensock;
     uint16_t _port;
-    int fd_array[fd_num_max];   // 数组, 用户维护的！
+    struct pollfd _event_fds[fd_num_max]; // 数组, 用户维护的！
 };

@@ -1,9 +1,9 @@
-#include "SelectServer.hpp"
+#include "PollServer.hpp"
 #include <memory>
 
 int main()
 {
-    std::unique_ptr<SelectServer> svr(new SelectServer());
+    std::unique_ptr<PollServer> svr(new PollServer());
     svr->Init();
     svr->Start();
     
