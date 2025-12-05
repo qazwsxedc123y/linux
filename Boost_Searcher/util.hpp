@@ -3,6 +3,7 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <boost/algorithm/string.hpp>
 
 namespace ns_util
 {
@@ -89,6 +90,26 @@ namespace ns_util
             std::string url_tail = file_path.substr(src_path.size());//将data/input截取掉    
             *url = url_head + url_tail;//拼接
             return true;
+        }
+    };
+
+
+    class StringUtil
+    {
+    public:
+        //切分字符串
+        static void Splist(const std::string &target, std::vector<std::string> *out, const std::string &sep)
+        {
+            //boost库中的split函数
+            boost::split(*out, target, boost::is_any_of(sep), boost::token_compress_on);
+            // 第一个参数：表示你要将切分的字符串放到哪里
+            // 第二个参数：表示你要切分的字符串
+            // 第三个参数：表示分割符是什么，不管是多个还是一个
+            // 第四个参数：它是默认可以不传，即切分的时候不压缩，不压缩就是保留空格
+            // 如：字符串为aaaa\3\3bbbb\3\3cccc\3\3d
+            // 如果不传第四个参数 结果为aaaa  bbbb  cccc  d
+            // 如果传第四个参数为boost::token_compress_on 结果为aaaabbbbccccd
+            // 如果传第四个参数为boost::token_compress_off 结果为aaaa  bbbb  cccc  d
         }
     };
 }
